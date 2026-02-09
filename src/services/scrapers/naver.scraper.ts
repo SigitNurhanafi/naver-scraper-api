@@ -36,9 +36,10 @@ export class NaverScraper extends BaseScraper {
                         const data = await response.json().catch(() => null);
                         if (!data) return;
 
-                        if (url.includes('/benefits/by-product')) {
+                        if (url.includes('/benefits/') || url.includes('/grade-benefits')) {
+                            // Capture any benefits-related data
                             responses.benefits = data;
-                            logger.log(`[Naver] Captured benefits data`);
+                            logger.log(`[Naver] Captured benefits data (${url.split('/').pop()?.split('?')[0]})`);
                         } else if (url.includes('/i/v2/channels/') && url.includes('/products/')) {
                             responses.productDetails = data;
                             logger.log(`[Naver] Captured productDetails data`);

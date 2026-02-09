@@ -137,12 +137,17 @@ export abstract class BaseScraper {
     protected async waitForResponses(responses: any, logger: Logger, timeout = 15000) {
         const start = Date.now();
         while (Date.now() - start < timeout) {
-            if (responses.benefits || responses.productDetails || (responses.allJson && Object.keys(responses.allJson).length > 0)) {
-                logger.log(`[${this.platformName}] Target responses captured`);
+            // Require BOTH essential data points for a successful scrape
+            if (responses.benefits && responses.productDetails) {
+                logger.log(`[${this.platformName}] All target responses captured ✅`);
                 return;
             }
             await delay(1000);
         }
-        logger.log(`[${this.platformName}] Timeout waiting for JSON responses`);
+
+        const missing = [];
+        if (!responses.benefits) missing.push('benefits');
+        if (!responses.productDetails) missing.push('productDetails');
+        logger.log(`[${this.platformName}] Warning: Missing responses: ${missing.join(', ')} ⚠️`);
     }
 }
