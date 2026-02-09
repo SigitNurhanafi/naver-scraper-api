@@ -43,7 +43,7 @@ export abstract class BaseScraper {
         }
 
         const options: any = {
-            headless: false,
+            headless: process.env.HEADLESS !== 'false', // Default to true (Headless)
             args: [
                 '--disable-blink-features=AutomationControlled',
                 '--no-sandbox',
