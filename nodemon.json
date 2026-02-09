@@ -1,0 +1,12 @@
+{
+    "watch": [
+        "src"
+    ],
+    "ext": "ts,json",
+    "ignore": [
+        "logs/*",
+        "user_data/*",
+        "node_modules"
+    ],
+    "exec": "ts-node src/app.ts"
+}
