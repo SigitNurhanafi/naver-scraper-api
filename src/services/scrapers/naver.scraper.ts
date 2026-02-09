@@ -45,7 +45,7 @@ export class NaverScraper extends BaseScraper {
                             if (url.includes('/benefits/') || url.includes('/grade-benefits') || url.includes('/benefit-list')) {
                                 responses.benefits = data;
                                 logger.log(`[Naver] Captured benefits data (Status: ${status})`);
-                            } else if (url.includes('/products/') && (url.includes('/i/v2/') || url.includes('/i/v1/'))) {
+                            } else if (url.includes('/products/') && url.includes('/i/v2/') && url.includes('withWindow=false')) {
                                 responses.productDetails = data;
                                 logger.log(`[Naver] Captured productDetails data (Status: ${status})`);
                             }
