@@ -10,12 +10,9 @@ export class NaverController {
         const logger = new Logger(requestId);
 
         try {
-            const { productUrl } = req.query;
+            const productUrl = req.query.productUrl as string;
 
-            if (!productUrl || typeof productUrl !== 'string' || !Validator.isValidNaverUrl(productUrl)) {
-                logger.log('Invalid request', { productUrl });
-                return res.status(400).json({ error: 'Invalid Naver product URL' });
-            }
+            // Validation handled in route middleware
 
             // 1. Check Cache First
             const cacheKey = `naver:${productUrl}`;

@@ -24,3 +24,6 @@ Thumbs.db
 # Optional: Keep lock files if you want reproducible builds
 # package-lock.json
 # yarn.lock
+
+#testing
+scripts/urls.txt
