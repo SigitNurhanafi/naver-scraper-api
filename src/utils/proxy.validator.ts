@@ -16,26 +16,31 @@ export async function isProxyWorking(logger: Logger, config?: ProxyConfig): Prom
     if (!proxyUrl) return false;
 
     try {
-        const displayUrl = proxyUrl.split('@').pop() || proxyUrl;
-        logger.log(`[ProxyCheck] Validating proxy: ${displayUrl}...`);
-
         const auth = username && password ? `${username}:${password}@` : '';
-        const cleanProxyUrl = proxyUrl.replace('http://', '').replace('https://', '');
-        const proxyFullUrl = `http://${auth}${cleanProxyUrl}`;
+        const cleanUrl = proxyUrl.replace(/^https?:\/\//, '');
+        const proxyFullUrl = `http://${auth}${cleanUrl}`;
+
+        logger.log(`[ProxyCheck] Validating: ${proxyUrl.split('@').pop()}`);
 
         const agent = new HttpsProxyAgent(proxyFullUrl);
 
         const response = await axios.get('https://www.naver.com', {
             httpsAgent: agent,
             proxy: false,
-            timeout: 5000
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            },
+            validateStatus: () => true
         });
 
         if (response.status === 200) {
             logger.log(`[ProxyCheck] Proxy is healthy! ✅`);
             return true;
+        } else {
+            logger.log(`[ProxyCheck] Proxy reached target but got status ${response.status} ⚠️`);
+            return false;
         }
-        return false;
     } catch (error: any) {
         logger.log(`[ProxyCheck] Proxy failed: ${error.message} ❌`);
         return false;

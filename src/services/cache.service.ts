@@ -5,8 +5,7 @@ export class CacheService {
   private cache: NodeCache;
 
   private constructor() {
-    // Default TTL 10 seconds as requested by user
-    this.cache = new NodeCache({ stdTTL: 10, checkperiod: 120 });
+    this.cache = new NodeCache({ stdTTL: 30, checkperiod: 120 });
   }
 
   public static getInstance(): CacheService {
