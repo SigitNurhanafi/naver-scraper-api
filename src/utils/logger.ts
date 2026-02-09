@@ -29,7 +29,9 @@ export class Logger {
         const logEntry = `[${timestamp}] ERROR: ${message}\n${JSON.stringify({
             message: error.message,
             stack: error.stack,
-            ...error
+            code: error.code,
+            status: error.response?.status,
+            data: error.response?.data
         }, null, 2)}\n`;
         fs.appendFileSync(this.logFile, logEntry);
         console.error(`[${this.requestId}] ERROR: ${message}`, error.message);
