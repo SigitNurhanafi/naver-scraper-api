@@ -125,6 +125,13 @@ export abstract class BaseScraper {
         } catch (e) { }
     }
 
+    protected isValidData(data: any): boolean {
+        if (!data) return false;
+        if (Array.isArray(data)) return data.length > 0;
+        if (typeof data === 'object') return Object.keys(data).length > 0;
+        return true;
+    }
+
     protected async safeEvaluate(page: Page, fn: () => any) {
         try {
             if (page.isClosed()) return null;
@@ -137,8 +144,8 @@ export abstract class BaseScraper {
     protected async waitForResponses(responses: any, logger: Logger, timeout = 15000) {
         const start = Date.now();
         while (Date.now() - start < timeout) {
-            // Require BOTH essential data points for a successful scrape
-            if (responses.benefits && responses.productDetails) {
+            // Require BOTH essential data points for a successful scrape (must be non-empty)
+            if (this.isValidData(responses.benefits) && this.isValidData(responses.productDetails)) {
                 logger.log(`[${this.platformName}] All target responses captured ✅`);
                 return;
             }

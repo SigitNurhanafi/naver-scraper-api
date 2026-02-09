@@ -36,12 +36,19 @@ export class NaverController {
             const scraper = ScraperFactory.getScraper('naver');
             const data = await scraper.scrape(productUrl, logger);
 
-            // 3. Save to Cache only if data is complete
-            if (data && data.benefits && data.productDetails) {
+            // 3. Save to Cache only if data is complete and NOT empty
+            const isValid = (d: any) => {
+                if (!d) return false;
+                if (Array.isArray(d)) return d.length > 0;
+                if (typeof d === 'object') return Object.keys(d).length > 0;
+                return true;
+            };
+
+            if (data && isValid(data.benefits) && isValid(data.productDetails)) {
                 cacheService.set(cacheKey, data);
                 logger.log('[Naver] Data complete. Saved to cache.');
             } else {
-                logger.log('[Naver] Data incomplete. Skipping cache.');
+                logger.log('[Naver] Data incomplete or empty. Skipping cache.');
             }
 
             res.json({

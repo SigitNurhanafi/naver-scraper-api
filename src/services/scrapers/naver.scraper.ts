@@ -135,8 +135,8 @@ export class NaverScraper extends BaseScraper {
                 // 3. Stable Verification (Scroll + Early Exit)
                 await this.scrollToBottom(page, logger);
 
-                // Early Exit Optimization: Check if we already have the JSONs
-                if (responses.benefits && responses.productDetails) {
+                // Early Exit Optimization: Check if we already have valid JSONs
+                if (this.isValidData(responses.benefits) && this.isValidData(responses.productDetails)) {
                     logger.log(`[Naver] Attempt ${attempt} Success! All data captured.`);
                     await context.close().catch(() => { });
                     return { ...responses };
@@ -144,13 +144,13 @@ export class NaverScraper extends BaseScraper {
                     await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
                     await this.waitForResponses(responses, logger, 10000);
 
-                    if (responses.benefits && responses.productDetails) {
+                    if (this.isValidData(responses.benefits) && this.isValidData(responses.productDetails)) {
                         logger.log(`[Naver] Attempt ${attempt} Success! All data captured after wait.`);
                         await context.close().catch(() => { });
                         return { ...responses };
                     } else {
-                        const missing = !responses.benefits ? 'benefits' : (!responses.productDetails ? 'productDetails' : 'unknown');
-                        logger.log(`[Naver] Attempt ${attempt} failed: ${missing} missing. Retrying... 🔄`);
+                        const missing = !this.isValidData(responses.benefits) ? 'benefits' : (!this.isValidData(responses.productDetails) ? 'productDetails' : 'unknown');
+                        logger.log(`[Naver] Attempt ${attempt} failed: ${missing} missing/empty. Retrying... 🔄`);
                     }
                 }
 
