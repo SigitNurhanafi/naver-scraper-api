@@ -1,13 +1,14 @@
 // src/utils/proxy.validator.ts
 import axios from 'axios';
+import { config } from '../config/config';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { Logger } from './logger';
 import { ProxyConfig } from '../types';
 
-export async function isProxyWorking(logger: Logger, config?: ProxyConfig): Promise<boolean> {
-    const proxyUrl = config?.server || process.env.PROXY_URL;
-    const username = config?.username || process.env.PROXY_USERNAME;
-    const password = config?.password || process.env.PROXY_PASSWORD;
+export async function isProxyWorking(logger: Logger, proxyConfig?: ProxyConfig): Promise<boolean> {
+    const proxyUrl = proxyConfig?.server || config.proxy.url;
+    const username = proxyConfig?.username || config.proxy.username;
+    const password = proxyConfig?.password || config.proxy.password;
 
     if (!proxyUrl) return false;
 
@@ -20,7 +21,7 @@ export async function isProxyWorking(logger: Logger, config?: ProxyConfig): Prom
 
         const agent = new HttpsProxyAgent(proxyFullUrl);
 
-        const response = await axios.get('https://www.naver.com', {
+        const response = await axios.get(config.naver.baseUrl, {
             httpsAgent: agent,
             proxy: false,
             timeout: 10000,
@@ -45,9 +46,9 @@ export async function isProxyWorking(logger: Logger, config?: ProxyConfig): Prom
 }
 
 export function getProxyList(): ProxyConfig[] {
-    const urls = (process.env.PROXY_URL || '').split(',').filter(Boolean);
-    const users = (process.env.PROXY_USERNAME || '').split(',');
-    const passes = (process.env.PROXY_PASSWORD || '').split(',');
+    const urls = (config.proxy.url || '').split(',').filter(Boolean);
+    const users = (config.proxy.username || '').split(',');
+    const passes = (config.proxy.password || '').split(',');
 
     return urls.map((url, i) => ({
         server: url.trim(),

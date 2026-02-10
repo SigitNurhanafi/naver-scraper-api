@@ -4,12 +4,14 @@ import { BrowserContext, Page } from 'playwright';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { getRandomFingerprint } from '../../utils/fingerprint';
 import { delay, getRandomInt } from '../../utils/delay';
+import { config } from '../../config/config';
 import { Logger } from '../../utils/logger';
 import { isValidData } from '../../utils/validator';
 import { isProxyWorking, getProxyList } from '../../utils/proxy.validator';
 import { ProxyConfig, ScrapeResult } from '../../types';
 import path from 'path';
 import fs from 'fs';
+import { ProxyError } from '../../errors/custom.error';
 
 chromium.use(StealthPlugin());
 
@@ -29,7 +31,7 @@ export abstract class BaseScraper {
         const fingerprint = getRandomFingerprint();
         await logger.log(`[${this.platformName}] Using fingerprint`, fingerprint);
 
-        const withProxy = process.env.WITH_PROXY === 'true';
+        const withProxy = config.proxy.useProxy;
         const proxyList = withProxy ? getProxyList() : [];
         let activeProxy: ProxyConfig | null = null;
 
@@ -45,7 +47,7 @@ export abstract class BaseScraper {
         }
 
         const options: Record<string, unknown> = {
-            headless: process.env.HEADLESS !== 'false', // Default to true (Headless)
+            headless: config.scraper.headless, // Default to true (Headless)
             args: [
                 '--disable-blink-features=AutomationControlled',
                 '--no-sandbox',
@@ -71,10 +73,10 @@ export abstract class BaseScraper {
             };
             await logger.log(`[${this.platformName}] Launching WITH proxy (Rolling/Verified)`);
         } else if (proxyList.length > 0) {
-            if (process.env.ALLOW_DIRECT_FALLBACK === 'true' || !process.env.PROXY_URL) {
+            if (config.proxy.allowDirectFallback || !config.proxy.url) {
                 await logger.log(`[${this.platformName}] All proxies failed. Falling back to DIRECT connection.`);
             } else {
-                throw new Error('PROXY_CONNECTION_FAILED: All proxies in rolling list are unresponsive.');
+                throw new ProxyError('All proxies in rolling list are unresponsive.');
             }
         } else {
             await logger.log(`[${this.platformName}] No proxies configured. Launching DIRECT.`);

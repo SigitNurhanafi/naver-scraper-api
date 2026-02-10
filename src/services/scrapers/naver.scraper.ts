@@ -5,6 +5,9 @@ import { isValidData } from '../../utils/validator';
 import { NaverResponses, ScrapeResult } from '../../types';
 import { Page } from 'playwright';
 import { delay, getRandomInt } from '../../utils/delay';
+import { config } from '../../config/config';
+import { ScraperError, NavigationError } from '../../errors/custom.error';
+import { parseNaverUrl, isBenefitUrl, isProductDetailsUrl, shouldIgnoreLog } from '../../utils/naver.utils';
 
 export class NaverScraper extends BaseScraper {
     constructor() {
@@ -12,11 +15,11 @@ export class NaverScraper extends BaseScraper {
     }
 
     async scrape(productUrl: string, logger: Logger): Promise<ScrapeResult> {
-        const maxRetries = 3;
+        const maxRetries = config.scraper.maxRetries;
         let lastError: Error | null = null;
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            const { storeName, productId } = this.parseUrl(productUrl);
+            const { storeName, productId } = parseNaverUrl(productUrl);
             const context = await this.launchContext(logger);
 
             const responses: NaverResponses = {
@@ -38,7 +41,7 @@ export class NaverScraper extends BaseScraper {
                 // 3. CAPTCHA Check
                 await this.detectAndSolveCaptcha(page, logger);
 
-                if (page.isClosed()) throw new Error('Target closed');
+                if (page.isClosed()) throw new NavigationError('Target closed unexpectedly');
 
                 // 4. Stable Verification (Scroll + Early Exit)
                 await this.scrollToBottom(page, logger);
@@ -75,7 +78,8 @@ export class NaverScraper extends BaseScraper {
             }
         }
 
-        throw lastError || new Error('Naver scraper failed after max retries (Incomplete data)');
+        if (lastError instanceof ScraperError) throw lastError;
+        throw new ScraperError(lastError?.message || 'Naver scraper failed after max retries (Incomplete data)');
     }
 
     private setupResponseInterceptor(page: Page, responses: NaverResponses, logger: Logger): void {
@@ -83,7 +87,7 @@ export class NaverScraper extends BaseScraper {
             const url = response.url();
             const status = response.status();
 
-            if (url.includes('smartstore.naver.com') && (url.includes('/api') || url.includes('/i/') || url.includes('/benefits/'))) {
+            if (shouldIgnoreLog(url)) {
                 // Suppress noisy logs during retries unless error
                 if (status >= 400) await logger.log(`[Naver] Intercepted Error: [${status}] ${url}`);
             }
@@ -95,10 +99,10 @@ export class NaverScraper extends BaseScraper {
                     const data: unknown = await response.json().catch(() => null);
                     if (!data) return;
 
-                    if (url.includes('/benefits/') || url.includes('/grade-benefits') || url.includes('/benefit-list')) {
+                    if (isBenefitUrl(url)) {
                         responses.benefits = data as NaverResponses['benefits'];
                         await logger.log(`[Naver] Captured benefits data (Status: ${status})`);
-                    } else if (url.includes('/products/') && url.includes('/i/v2/') && url.includes('withWindow=false')) {
+                    } else if (isProductDetailsUrl(url)) {
                         responses.productDetails = data as NaverResponses['productDetails'];
                         await logger.log(`[Naver] Captured productDetails data (Status: ${status})`);
                     }
@@ -119,7 +123,7 @@ export class NaverScraper extends BaseScraper {
 
         // 🔄 Strategy 1: Browse Store Home (Prioritas Utama)
         await logger.log(`[Naver] Strategy 1: Browse Store Home for Product ID ${productId} 🏠`);
-        const storeUrl = `https://smartstore.naver.com/${storeName}/`;
+        const storeUrl = `${config.naver.baseUrl}/${storeName}/`;
         await page.goto(storeUrl, { waitUntil: 'domcontentloaded' });
         await delay(getRandomInt(2000, 3000));
 
@@ -159,7 +163,7 @@ export class NaverScraper extends BaseScraper {
         // 🆕 Strategy 2: Search via Store (Fallback)
         if (!clicked) {
             await logger.log(`[Naver] Strategy 1 Failed. Fallback to Strategy 2: Search Product 🔍`);
-            const searchUrl = `https://smartstore.naver.com/${storeName}/search?q=${productId}`;
+            const searchUrl = `${config.naver.baseUrl}/${storeName}/search?q=${productId}`;
 
             await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
             await delay(getRandomInt(2000, 3000));
@@ -196,8 +200,9 @@ export class NaverScraper extends BaseScraper {
         if (isCaptcha) {
             await logger.log('[Naver] CAPTCHA detected. Waiting for manual solve...');
 
-            const captchaImageUrl = await this.safeEvaluate(page, () => {
-                const imgById = document.querySelector('#captcha_img_cover') as HTMLImageElement;
+            const captchaSelector = config.naver.selectors.captchaImage;
+            const captchaImageUrl = await page.evaluate((selector) => {
+                const imgById = document.querySelector(selector) as HTMLImageElement;
                 if (imgById) return imgById.src || imgById.getAttribute('src');
 
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- browser context, XPathResult access
@@ -208,7 +213,7 @@ export class NaverScraper extends BaseScraper {
                     return (result.singleNodeValue as HTMLImageElement)?.src || null;
                 }
                 return null;
-            });
+            }, captchaSelector).catch(() => null);
             if (captchaImageUrl) await logger.log(`[Naver] CAPTCHA URL: ${captchaImageUrl}`);
 
             await page.waitForSelector('h3._22_f_UC9_j, ._1_v1461f4, .product_detail', { timeout: 60000 }).catch(() => {
@@ -217,9 +222,4 @@ export class NaverScraper extends BaseScraper {
         }
     }
 
-    private parseUrl(url: string): { storeName: string; productId: string } {
-        const match = url.match(/smartstore\.naver\.com\/([^\/]+)\/products\/(\d+)/);
-        if (!match) throw new Error('Invalid Naver URL');
-        return { storeName: match[1], productId: match[2] };
-    }
 }
