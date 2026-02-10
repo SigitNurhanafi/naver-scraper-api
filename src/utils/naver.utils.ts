@@ -4,8 +4,11 @@ import { ScraperError } from '../errors/custom.error';
 export const NAVER_CONSTANTS = {
     URL_REGEX: /smartstore\.naver\.com\/([^\/]+)\/products\/(\d+)/,
     API_PATHS: {
-        BENEFITS: ['/benefits/', '/grade-benefits', '/benefit-list'],
-        PRODUCTS: ['/products/', '/i/v2/'],
+        BENEFITS: [
+            /\/benefits\/by-product/,
+        ],
+        // Strict pattern: /i/v2/channels/{channel_id}/products/{product_id}
+        PRODUCTS_REGEX: /\/i\/v2\/channels\/[^\/]+\/products\/\d+/,
         IGNORE_LOGS: ['/api', '/i/', '/benefits/']
     }
 } as const;
@@ -17,12 +20,13 @@ export function parseNaverUrl(url: string): { storeName: string; productId: stri
 }
 
 export function isBenefitUrl(url: string): boolean {
-    return NAVER_CONSTANTS.API_PATHS.BENEFITS.some(path => url.includes(path));
+    // Strict regex check to avoid false positives (e.g. /benefits/other-promo)
+    return NAVER_CONSTANTS.API_PATHS.BENEFITS.some(pattern => pattern.test(url));
 }
 
 export function isProductDetailsUrl(url: string): boolean {
-    // strict check for product details to avoid false positives
-    return NAVER_CONSTANTS.API_PATHS.PRODUCTS.every(path => url.includes(path)) && url.includes('withWindow=false');
+    // strict check for product details: /i/v2/channels/.../products/... AND withWindow=false
+    return NAVER_CONSTANTS.API_PATHS.PRODUCTS_REGEX.test(url) && url.includes('withWindow=false');
 }
 
 export function shouldIgnoreLog(url: string): boolean {
