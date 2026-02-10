@@ -1,25 +1,33 @@
 // src/utils/proxy.validator.ts
 import axios from 'axios';
 import { config } from '../config/config';
+import fs from 'fs';
+import path from 'path';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { Logger } from './logger';
 import { ProxyConfig } from '../types';
 
 export async function isProxyWorking(logger: Logger, proxyConfig?: ProxyConfig): Promise<boolean> {
-    const proxyUrl = proxyConfig?.server || config.proxy.url;
-    const username = proxyConfig?.username || config.proxy.username;
-    const password = proxyConfig?.password || config.proxy.password;
+    const proxyUrl = proxyConfig?.server;
+    const username = proxyConfig?.username;
+    const password = proxyConfig?.password;
 
     if (!proxyUrl) return false;
 
     try {
         const auth = username && password ? `${username}:${password}@` : '';
-        const cleanUrl = proxyUrl.replace(/^https?:\/\//, '');
-        const proxyFullUrl = `http://${auth}${cleanUrl}`;
+        const protocol = proxyUrl.startsWith('socks') ? 'socks' : 'http';
+        const cleanUrl = proxyUrl.replace(/^(https?|socks[45]?):\/\//, '');
 
-        await logger.log(`[ProxyCheck] Validating: ${proxyUrl.split('@').pop()}`);
+        // Construct standard URL for agent
+        const proxyFullUrl = `${protocol}://${auth}${cleanUrl}`;
 
-        const agent = new HttpsProxyAgent(proxyFullUrl);
+        await logger.log(`[ProxyCheck] Validating: ${proxyUrl.split('@').pop()} (${protocol.toUpperCase()})`);
+
+        const agent = protocol === 'socks'
+            ? new SocksProxyAgent(proxyFullUrl)
+            : new HttpsProxyAgent(proxyFullUrl);
 
         const response = await axios.get(config.naver.baseUrl, {
             httpsAgent: agent,
@@ -46,13 +54,14 @@ export async function isProxyWorking(logger: Logger, proxyConfig?: ProxyConfig):
 }
 
 export function getProxyList(): ProxyConfig[] {
-    const urls = (config.proxy.url || '').split(',').filter(Boolean);
-    const users = (config.proxy.username || '').split(',');
-    const passes = (config.proxy.password || '').split(',');
+    try {
+        const proxyPath = path.join(process.cwd(), 'proxies.json');
+        if (!fs.existsSync(proxyPath)) return [];
 
-    return urls.map((url, i) => ({
-        server: url.trim(),
-        username: users[i]?.trim(),
-        password: passes[i]?.trim()
-    }));
+        const fileContent = fs.readFileSync(proxyPath, 'utf-8');
+        return JSON.parse(fileContent) as ProxyConfig[];
+    } catch (error) {
+        console.error('Failed to load proxies.json:', error);
+        return [];
+    }
 }

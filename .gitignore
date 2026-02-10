@@ -27,3 +27,5 @@ Thumbs.db
 
 #testing
 scripts/urls.txt
+
+proxies.json

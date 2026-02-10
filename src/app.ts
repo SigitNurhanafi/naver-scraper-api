@@ -7,8 +7,6 @@ import naverRoutes from './routes/platforms/naver.routes';
 import shopeeRoutes from './routes/platforms/shopee.routes';
 import { config } from './config/config';
 
-dotenv.config();
-
 const app = express();
 const PORT = config.server.port;
 

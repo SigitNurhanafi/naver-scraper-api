@@ -1,0 +1,13 @@
+[
+  {
+    "server": "http://username:password@proxy.example.com:8080"
+  },
+  {
+    "server": "socks5://proxy.example.com:1080",
+    "username": "myuser",
+    "password": "mypassword"
+  },
+  {
+    "server": "http://1.2.3.4:80"
+  }
+]

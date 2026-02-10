@@ -1,87 +1,144 @@
-# Naver SmartStore Scraper API
+# Naver Scraper API 🕷️
 
-A professional, scalable, and undetectable REST API built with Node.js and TypeScript to scrape product details from Naver SmartStore. Optimized for high performance, stealth, and rolling proxy management.
+A high-performance, stealthy API to scrape product details from Naver SmartStore. Built with Node.js, TypeScript, and Playwright.
 
-## 🚀 Features
+## 🌟 Key Features
+- **Stealth Mode**: Uses advanced fingerprinting to mimic real users.
+- **Auto-Switching Proxies**: Automatically rotates proxies if one fails.
+- **Smart Navigation**: Tries to "browse" naturally first, then searches, and only uses direct links as a last resort.
+- **JSON Output**: Returns clean, structured JSON data.
 
-- **Deep Scraping**: Direct JSON interception from internal Naver APIs.
-- **Turbo organic Mode**: Optimized for **< 6s latency** with snap-scrolling and resource blocking (no images/ads).
-- **Rolling Proxy System**: 
-  - Supports multiple proxies in `.env`.
-  - Automatic health checks before launching.
-  - Failover/Retry logic within the proxy list.
-- **In-Memory Cache**: 10-second RAM cache for instant repeated requests.
-- **Evasion Suite**: Dynamic fingerprinting, stealth plugins, and mimicking human signals.
+---
 
-## 📦 Setup & Installation
+## 🛠️ Prerequisites (Before you start)
 
-### 1. Prerequisites
-- Node.js (v18+)
-- npm
+Make sure you have these installed on your computer:
+1.  **Node.js** (Version 18 or higher) - [Download Here](https://nodejs.org/)
+2.  **Git** (Optional, to clone the repo) - [Download Here](https://git-scm.com/)
 
-### 2. Installation
+---
+
+## 🚀 Installation Guide (Step-by-Step)
+
+### 1. Setup the Project
+Open your terminal (Command Prompt / PowerShell / Terminal) and run:
+
 ```bash
-# Install dependencies
+# 1. Install project dependencies
 npm install
 
-# Install Playwright browser
+# 2. Install the browsers for automation (CRITICAL STEP!)
 npx playwright install chromium
 ```
 
-### 3. Environment Configuration (`.env`)
+### 2. Configure Environment (`.env`)
+You need to create a configuration file.
+1.  Copy the example file: `cp .env.example .env` (or manually rename/copy it).
+2.  Open `.env` in a text editor (VS Code, Notepad, etc.).
+
+**Simple Configuration Guide:**
+
 ```env
+# Server Port (Default: 3000)
 PORT=3000
 
-# Proxy Toggle
+# --- PROXY SETTINGS ---
+# Set to 'true' to use proxies from proxies.json
 WITH_PROXY=true
+
+# If proxies fail, should we try using your direct internet? (true/false)
 ALLOW_DIRECT_FALLBACK=true
 
-# Multi-Proxy Configuration (Comma Separated)
-PROXY_URL=http://proxy1.net:9999,http://proxy2.net:9999
-PROXY_USERNAME=user1,user2
-PROXY_PASSWORD=pass1,pass2
-
-# Performance
+# How many concurrent scrapes allowed?
 MAX_CONCURRENT=5
 ```
 
-## 🏃 Usage
+### 3. Setup Proxies (`proxies.json`)
+The system uses `proxies.json` to manage proxies. This file is gitignored to keep your credentials safe.
 
-### Development Mode
+1.  Copy the example file: `cp proxies.json.example proxies.json` (or manually rename/copy).
+2.  Edit `proxies.json` with your actual proxy list.
+
+**Supported Types:** HTTP, HTTPS, SOCKS4, SOCKS5.
+
+**Example Content:**
+```json
+[
+  {
+    "server": "http://user:pass@1.2.3.4:8080"
+  },
+  {
+    "server": "socks5://user:pass@5.6.7.8:1080"
+  },
+  {
+    "server": "http://1.2.3.4:8080",
+    "username": "user1",
+    "password": "pass1"
+  }
+]
+```
+*Note: You can put credentials in the URL or as separate fields.*
+
+---
+
+## 🏃‍♂️ How to Run
+
+### Development Mode (For testing/editing)
+Use this when you are changing code. It auto-restarts on save.
 ```bash
 npm run dev
 ```
+*You should see: `Server is running on port 3000`*
 
-### Production Build
+### Production Mode (For deployment)
+Use this for actual usage (faster and stable).
 ```bash
 npm run build
 npm start
 ```
 
-## 🧪 API Endpoints
+---
 
-### 1. Scrape Naver Product
-**Endpoint**: `GET /naver`  
-**Example**: `http://localhost:3000/naver?productUrl=https://smartstore.naver.com/yeon_a_cosmetic/products/10731856526`
+## 🧪 How to Use
 
-**Response (fromCache indicated)**:
+### Scrape a Product
+Open your browser or use Postman and visit:
+
+`GET http://localhost:3000/naver?productUrl=[NAVER_PRODUCT_URL]`
+
+**Example:**
+`http://localhost:3000/naver?productUrl=https://smartstore.naver.com/yeon_a_cosmetic/products/10731856526`
+
+**Successful Response:**
 ```json
 {
   "success": true,
-  "platform": "naver",
-  "fromCache": false,
-  "data": { ... },
-  "timestamp": "2026-02-09T15:45:00.000Z",
-  "requestId": "abc123"
+  "data": {
+    "benefits": { ... },
+    "productDetails": { ... }
+  }
 }
 ```
 
-## 🛡️ Stealth & Performance Strategy
+---
 
-1. **Snap Simulation**: Minimalist human signals (<1s) to evade bot detection while maintaining speed.
-2. **Resource Blocking**: Aborts requests for images, videos, and fonts to ensure instant page loads.
-3. **Internal API Interception**: Captures accurately parsed JSON instead of fragile HTML selectors.
-4. **Resilient Rolling**: If one proxy is blocked or down, the system automatically tries the next one in the list.
+## ❓ Troubleshooting (Common Issues)
+
+**Q: "Executable doesn't exist at..."**
+A: You forgot to install the browser. Run: `npx playwright install chromium`
+
+**Q: "TimeoutError: page.goto: Timeout 30000ms exceeded"**
+A: Note that Naver is slow or your Proxy is slow. 
+- Try setting `WITH_PROXY=false` to test if it works with your direct connection.
+- Check if your Proxy IP is banned.
+
+**Q: "Target closed unexpectedly"**
+A: The coordination between browser and script failed. This usually happens if the machine runs out of RAM or the browser crashes. Try reducing `MAX_CONCURRENT`.
 
 ---
-*Developed for High-Speed E-commerce Data Acquisition.*
+
+## 📂 Project Structure
+- `src/app.ts`: Entry point of the server.
+- `src/services/scrapers/`: Where the scraping magic happens.
+- `src/config/`: Configuration files.
+- `src/utils/`: Helper functions (logging, formatting).

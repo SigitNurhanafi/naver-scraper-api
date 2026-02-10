@@ -73,7 +73,7 @@ export abstract class BaseScraper {
             };
             await logger.log(`[${this.platformName}] Launching WITH proxy (Rolling/Verified)`);
         } else if (proxyList.length > 0) {
-            if (config.proxy.allowDirectFallback || !config.proxy.url) {
+            if (config.proxy.allowDirectFallback) {
                 await logger.log(`[${this.platformName}] All proxies failed. Falling back to DIRECT connection.`);
             } else {
                 throw new ProxyError('All proxies in rolling list are unresponsive.');

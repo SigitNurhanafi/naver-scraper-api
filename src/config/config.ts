@@ -1,6 +1,6 @@
 // src/config/config.ts
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ quiet: true });
 
 export const config = {
     server: {
@@ -16,9 +16,6 @@ export const config = {
     },
     proxy: {
         useProxy: process.env.WITH_PROXY === 'true',
-        url: process.env.PROXY_URL || '',
-        username: process.env.PROXY_USERNAME || '',
-        password: process.env.PROXY_PASSWORD || '',
         allowDirectFallback: process.env.ALLOW_DIRECT_FALLBACK === 'true'
     },
     naver: {
