@@ -99,6 +99,33 @@ npm start
 
 ---
 
+## ☁️ Deployment (Advanced with PM2)
+
+We use `ecosystem.config.js` to handle auto-restart and memory limits.
+
+### 1. Build & Install PM2
+```bash
+npm install
+npm run build
+sudo npm install -g pm2
+```
+
+### 2. Start with Auto-Restart & Memory Limit (1GB)
+```bash
+pm2 start ecosystem.config.js
+```
+*This will automatically restart the app if it crashes or uses more than 1GB RAM.*
+
+### 3. Monitoring
+```bash
+pm2 monit         # Monitor CPU/Memory
+pm2 logs          # Real-time logs
+pm2 save          # Save process list for reboot
+pm2 startup       # Generate startup script
+```
+
+---
+
 ## 🧪 How to Use
 
 ### Scrape a Product
@@ -134,6 +161,12 @@ A: Note that Naver is slow or your Proxy is slow.
 
 **Q: "Target closed unexpectedly"**
 A: The coordination between browser and script failed. This usually happens if the machine runs out of RAM or the browser crashes. Try reducing `MAX_CONCURRENT`.
+
+**Q: "error while loading shared libraries: libatk-1.0.so.0" (Linux)**
+A: Your system is missing dependencies. Run:
+```bash
+npx playwright install-deps
+```
 
 ---
 
