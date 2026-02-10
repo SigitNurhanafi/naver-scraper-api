@@ -102,10 +102,10 @@ export class NaverScraper extends BaseScraper {
 
                     if (isBenefitUrl(url)) {
                         responses.benefits = data as NaverResponses['benefits'];
-                        await logger.log(`[Naver] Captured benefits data (Status: ${status})`);
+                        await logger.log(`[Naver] Captured benefits data from: ${url} (Status: ${status})`);
                     } else if (isProductDetailsUrl(url)) {
                         responses.productDetails = data as NaverResponses['productDetails'];
-                        await logger.log(`[Naver] Captured productDetails data (Status: ${status})`);
+                        await logger.log(`[Naver] Captured productDetails data from: ${url} (Status: ${status})`);
                     }
                 }
             } catch { /* response may have been consumed */ }
