@@ -4,8 +4,8 @@ import { ScraperError } from '../errors/custom.error';
 export const NAVER_CONSTANTS = {
     URL_REGEX: /smartstore\.naver\.com\/([^\/]+)\/products\/(\d+)/,
     API_PATHS: {
-        BENEFITS: ['/benefits/', '/grade-benefits', '/benefit-list'],
-        PRODUCTS: ['/products/', '/i/v2/'],
+        BENEFITS: ['/benefits/', '/by-product/'],
+        PRODUCTS: ['/i/v2/', '/channels/', '/products/'],
         IGNORE_LOGS: ['/api', '/i/', '/benefits/']
     }
 } as const;
