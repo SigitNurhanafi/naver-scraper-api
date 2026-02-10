@@ -1,14 +1,15 @@
 // src/services/scrapers/shopee.scraper.ts
 import { BaseScraper } from './base.scraper';
 import { Logger } from '../../utils/logger';
+import { ScrapeResult } from '../../types';
 
 export class ShopeeScraper extends BaseScraper {
     constructor() {
         super('shopee');
     }
 
-    async scrape(url: string, logger: Logger) {
-        logger.log('[Shopee] Placeholder scrape initiated for ' + url);
+    async scrape(url: string, logger: Logger): Promise<ScrapeResult> {
+        await logger.log('[Shopee] Placeholder scrape initiated for ' + url);
         // Implementation for Shopee-TW would go here
         return {
             success: false,

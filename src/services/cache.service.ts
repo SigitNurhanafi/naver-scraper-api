@@ -1,8 +1,9 @@
+// src/services/cache.service.ts
 import NodeCache = require('node-cache');
 
 export class CacheService {
   private static instance: CacheService;
-  private cache: NodeCache;
+  private readonly cache: NodeCache;
 
   private constructor() {
     this.cache = new NodeCache({ stdTTL: 30, checkperiod: 120 });
@@ -19,7 +20,7 @@ export class CacheService {
     return this.cache.get<T>(key);
   }
 
-  public set(key: string, value: any, ttl?: number): boolean {
+  public set<T>(key: string, value: T, ttl?: number): boolean {
     if (ttl) {
       return this.cache.set(key, value, ttl);
     }

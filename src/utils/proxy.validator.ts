@@ -1,12 +1,8 @@
+// src/utils/proxy.validator.ts
 import axios from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { Logger } from './logger';
-
-export interface ProxyConfig {
-    server: string;
-    username?: string;
-    password?: string;
-}
+import { ProxyConfig } from '../types';
 
 export async function isProxyWorking(logger: Logger, config?: ProxyConfig): Promise<boolean> {
     const proxyUrl = config?.server || process.env.PROXY_URL;
@@ -20,7 +16,7 @@ export async function isProxyWorking(logger: Logger, config?: ProxyConfig): Prom
         const cleanUrl = proxyUrl.replace(/^https?:\/\//, '');
         const proxyFullUrl = `http://${auth}${cleanUrl}`;
 
-        logger.log(`[ProxyCheck] Validating: ${proxyUrl.split('@').pop()}`);
+        await logger.log(`[ProxyCheck] Validating: ${proxyUrl.split('@').pop()}`);
 
         const agent = new HttpsProxyAgent(proxyFullUrl);
 
@@ -35,14 +31,15 @@ export async function isProxyWorking(logger: Logger, config?: ProxyConfig): Prom
         });
 
         if (response.status === 200) {
-            logger.log(`[ProxyCheck] Proxy is healthy! ✅`);
+            await logger.log(`[ProxyCheck] Proxy is healthy! ✅`);
             return true;
         } else {
-            logger.log(`[ProxyCheck] Proxy reached target but got status ${response.status} ⚠️`);
+            await logger.log(`[ProxyCheck] Proxy reached target but got status ${response.status} ⚠️`);
             return false;
         }
-    } catch (error: any) {
-        logger.log(`[ProxyCheck] Proxy failed: ${error.message} ❌`);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        await logger.log(`[ProxyCheck] Proxy failed: ${message} ❌`);
         return false;
     }
 }

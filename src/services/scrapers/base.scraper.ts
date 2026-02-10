@@ -3,29 +3,31 @@ import { chromium } from 'playwright-extra';
 import { BrowserContext, Page } from 'playwright';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { getRandomFingerprint } from '../../utils/fingerprint';
-import { delay, getRandomDelay } from '../../utils/delay';
+import { delay, getRandomInt } from '../../utils/delay';
 import { Logger } from '../../utils/logger';
-import { isProxyWorking, getProxyList, ProxyConfig } from '../../utils/proxy.validator';
+import { isValidData } from '../../utils/validator';
+import { isProxyWorking, getProxyList } from '../../utils/proxy.validator';
+import { ProxyConfig, ScrapeResult } from '../../types';
 import path from 'path';
 import fs from 'fs';
 
 chromium.use(StealthPlugin());
 
 export abstract class BaseScraper {
-    protected userDataDir: string;
+    protected readonly userDataDir: string;
 
-    constructor(protected platformName: string) {
+    constructor(protected readonly platformName: string) {
         this.userDataDir = path.join(process.cwd(), 'user_data', platformName);
         if (!fs.existsSync(this.userDataDir)) {
             fs.mkdirSync(this.userDataDir, { recursive: true });
         }
     }
 
-    abstract scrape(url: string, logger: Logger): Promise<any>;
+    abstract scrape(url: string, logger: Logger): Promise<ScrapeResult>;
 
-    protected async launchContext(logger: Logger) {
+    protected async launchContext(logger: Logger): Promise<BrowserContext> {
         const fingerprint = getRandomFingerprint();
-        logger.log(`[${this.platformName}] Using fingerprint`, fingerprint);
+        await logger.log(`[${this.platformName}] Using fingerprint`, fingerprint);
 
         const withProxy = process.env.WITH_PROXY === 'true';
         const proxyList = withProxy ? getProxyList() : [];
@@ -42,7 +44,7 @@ export abstract class BaseScraper {
             }
         }
 
-        const options: any = {
+        const options: Record<string, unknown> = {
             headless: process.env.HEADLESS !== 'false', // Default to true (Headless)
             args: [
                 '--disable-blink-features=AutomationControlled',
@@ -67,22 +69,22 @@ export abstract class BaseScraper {
                 username: activeProxy.username,
                 password: activeProxy.password
             };
-            logger.log(`[${this.platformName}] Launching WITH proxy (Rolling/Verified)`);
+            await logger.log(`[${this.platformName}] Launching WITH proxy (Rolling/Verified)`);
         } else if (proxyList.length > 0) {
             if (process.env.ALLOW_DIRECT_FALLBACK === 'true' || !process.env.PROXY_URL) {
-                logger.log(`[${this.platformName}] All proxies failed. Falling back to DIRECT connection.`);
+                await logger.log(`[${this.platformName}] All proxies failed. Falling back to DIRECT connection.`);
             } else {
                 throw new Error('PROXY_CONNECTION_FAILED: All proxies in rolling list are unresponsive.');
             }
         } else {
-            logger.log(`[${this.platformName}] No proxies configured. Launching DIRECT.`);
+            await logger.log(`[${this.platformName}] No proxies configured. Launching DIRECT.`);
         }
 
         const context = await chromium.launchPersistentContext(this.userDataDir, options);
         return context;
     }
 
-    protected async setupPage(page: Page) {
+    protected async setupPage(page: Page): Promise<void> {
         await page.addInitScript(() => {
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
             // @ts-ignore
@@ -90,8 +92,8 @@ export abstract class BaseScraper {
         });
     }
 
-    protected async scrollToBottom(page: Page, logger: Logger) {
-        logger.log(`[${this.platformName}] Scrolling to bottom...`);
+    protected async scrollToBottom(page: Page, logger: Logger): Promise<void> {
+        await logger.log(`[${this.platformName}] Scrolling to bottom...`);
         await page.evaluate(async () => {
             await new Promise<void>((resolve) => {
                 let totalHeight = 0;
@@ -110,51 +112,48 @@ export abstract class BaseScraper {
         });
     }
 
-    protected async simulateHumanBehavior(page: Page) {
+    protected async simulateHumanBehavior(page: Page): Promise<void> {
         try {
             if (page.isClosed()) return;
-            const scrollCount = getRandomDelay(2, 4);
+            const scrollCount = getRandomInt(2, 4);
             for (let i = 0; i < scrollCount; i++) {
-                await page.mouse.wheel(0, getRandomDelay(300, 800));
-                await delay(getRandomDelay(600, 1200));
+                await page.mouse.wheel(0, getRandomInt(300, 800));
+                await delay(getRandomInt(600, 1200));
                 if (Math.random() > 0.6) {
-                    await page.mouse.move(getRandomDelay(200, 700), getRandomDelay(200, 700), { steps: 5 });
+                    await page.mouse.move(getRandomInt(200, 700), getRandomInt(200, 700), { steps: 5 });
                 }
             }
-            await page.mouse.move(getRandomDelay(200, 600), getRandomDelay(200, 600));
-        } catch (e) { }
+            await page.mouse.move(getRandomInt(200, 600), getRandomInt(200, 600));
+        } catch { /* page may have navigated away */ }
     }
 
-    protected isValidData(data: any): boolean {
-        if (!data) return false;
-        if (Array.isArray(data)) return data.length > 0;
-        if (typeof data === 'object') return Object.keys(data).length > 0;
-        return true;
-    }
-
-    protected async safeEvaluate(page: Page, fn: () => any) {
+    protected async safeEvaluate<T>(page: Page, fn: () => T): Promise<T | null> {
         try {
             if (page.isClosed()) return null;
             return await page.evaluate(fn);
-        } catch (e) {
+        } catch {
             return null;
         }
     }
 
-    protected async waitForResponses(responses: any, logger: Logger, timeout = 15000) {
+    protected async waitForResponses(
+        responses: { benefits: unknown; productDetails: unknown },
+        logger: Logger,
+        timeout = 15000
+    ): Promise<void> {
         const start = Date.now();
         while (Date.now() - start < timeout) {
             // Require BOTH essential data points for a successful scrape (must be non-empty)
-            if (this.isValidData(responses.benefits) && this.isValidData(responses.productDetails)) {
-                logger.log(`[${this.platformName}] All target responses captured ✅`);
+            if (isValidData(responses.benefits) && isValidData(responses.productDetails)) {
+                await logger.log(`[${this.platformName}] All target responses captured ✅`);
                 return;
             }
             await delay(1000);
         }
 
-        const missing = [];
+        const missing: string[] = [];
         if (!responses.benefits) missing.push('benefits');
         if (!responses.productDetails) missing.push('productDetails');
-        logger.log(`[${this.platformName}] Warning: Missing responses: ${missing.join(', ')} ⚠️`);
+        await logger.log(`[${this.platformName}] Warning: Missing responses: ${missing.join(', ')} ⚠️`);
     }
 }
