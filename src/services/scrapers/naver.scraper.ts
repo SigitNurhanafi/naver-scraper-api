@@ -61,7 +61,8 @@ export class NaverScraper extends BaseScraper {
                         return { ...responses };
                     } else {
                         const missing = !isValidData(responses.benefits) ? 'benefits' : (!isValidData(responses.productDetails) ? 'productDetails' : 'unknown');
-                        await logger.log(`[Naver] Attempt ${attempt} failed: ${missing} missing/empty. Retrying... 🔄`);
+                        await logger.log(`[Naver] Attempt ${attempt} failed: ${missing} missing/empty. Flagging proxy and retrying... 🔄`);
+                        this.markProxyBad(context, `Incomplete data: ${missing} missing`);
                     }
                 }
 

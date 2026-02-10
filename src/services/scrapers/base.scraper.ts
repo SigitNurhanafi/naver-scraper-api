@@ -7,7 +7,7 @@ import { delay, getRandomInt } from '../../utils/delay';
 import { config } from '../../config/config';
 import { Logger } from '../../utils/logger';
 import { isValidData } from '../../utils/validator';
-import { isProxyWorking, getProxyList } from '../../utils/proxy.validator';
+import { proxyManager } from '../../utils/proxy.manager';
 import { ProxyConfig, ScrapeResult } from '../../types';
 import path from 'path';
 import fs from 'fs';
@@ -32,18 +32,11 @@ export abstract class BaseScraper {
         await logger.log(`[${this.platformName}] Using fingerprint`, fingerprint);
 
         const withProxy = config.proxy.useProxy;
-        const proxyList = withProxy ? getProxyList() : [];
         let activeProxy: ProxyConfig | null = null;
 
         if (withProxy) {
-            // Rolling Proxy Logic
-            for (const proxy of proxyList) {
-                const isWorking = await isProxyWorking(logger, proxy);
-                if (isWorking) {
-                    activeProxy = proxy;
-                    break;
-                }
-            }
+            // Use ProxyManager for rolling/verified selection
+            activeProxy = await proxyManager.getNextProxy(logger);
         }
 
         const options: Record<string, unknown> = {
@@ -71,19 +64,35 @@ export abstract class BaseScraper {
                 username: activeProxy.username,
                 password: activeProxy.password
             };
-            await logger.log(`[${this.platformName}] Launching WITH proxy (Rolling/Verified)`);
-        } else if (proxyList.length > 0) {
+            await logger.log(`[${this.platformName}] Launching WITH proxy (Cached/Verified: ${activeProxy.server.split('@').pop()})`);
+        } else if (withProxy) {
             if (config.proxy.allowDirectFallback) {
-                await logger.log(`[${this.platformName}] All proxies failed. Falling back to DIRECT connection.`);
+                await logger.log(`[${this.platformName}] All proxies failed or filtered. Falling back to DIRECT connection.`);
             } else {
-                throw new ProxyError('All proxies in rolling list are unresponsive.');
+                throw new ProxyError('All proxies in rolling list are unresponsive or flagged as bad.');
             }
         } else {
-            await logger.log(`[${this.platformName}] No proxies configured. Launching DIRECT.`);
+            await logger.log(`[${this.platformName}] No proxies configured or disabled. Launching DIRECT.`);
         }
 
         const context = await chromium.launchPersistentContext(this.userDataDir, options);
+
+        // Store active proxy in context for reporting failures later
+        if (activeProxy) {
+            (context as any)._activeProxy = activeProxy;
+        }
+
         return context;
+    }
+
+    /**
+     * Reports a proxy as bad if it failed to deliver data points.
+     */
+    protected markProxyBad(context: BrowserContext, reason: string): void {
+        const activeProxy = (context as any)._activeProxy as ProxyConfig | undefined;
+        if (activeProxy) {
+            proxyManager.markBad(activeProxy, reason);
+        }
     }
 
     protected async setupPage(page: Page): Promise<void> {
