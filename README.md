@@ -39,8 +39,12 @@ You need to create a configuration file.
 **Simple Configuration Guide:**
 
 ```env
-# Server Port (Default: 3000)
+# --- SERVER SETTINGS ---
+# Port for the API server (Default: 3000)
 PORT=3000
+
+# Node environment: 'development' or 'production'
+NODE_ENV=production
 
 # --- PROXY SETTINGS ---
 # Set to 'true' to use proxies from proxies.json
@@ -49,8 +53,26 @@ WITH_PROXY=true
 # If proxies fail, should we try using your direct internet? (true/false)
 ALLOW_DIRECT_FALLBACK=true
 
+# Proxy cache TTL in seconds (how long to keep proxy status in memory)
+# Default: 300 seconds (5 minutes)
+PROXY_CACHE_TTL=300
+
+# --- SCRAPER SETTINGS ---
 # How many concurrent scrapes allowed?
 MAX_CONCURRENT=5
+
+# Request timeout in milliseconds (Default: 10000ms = 10s)
+REQUEST_TIMEOUT=10000
+
+# Run browser in headless mode? (true = invisible, false = visible)
+HEADLESS=true
+
+# Cache TTL for scrape results in seconds (Default: 120s = 2 minutes)
+SCRAPE_CACHE_TTL=120
+
+# Disable stealth delays for faster scraping? (true = faster but less stealthy)
+# Set to 'false' for production to mimic human behavior
+DISABLE_STEALTH_DELAY=false
 ```
 
 ### 3. Setup Proxies (`proxies.json`)
