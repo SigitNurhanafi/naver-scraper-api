@@ -137,7 +137,11 @@ export class NaverScraper extends BaseScraper {
         await logger.log(`[Naver] Strategy 1: Browse Store Home for Product ID ${productId} 🏠`);
         const storeUrl = `${config.naver.baseUrl}/${storeName}/`;
         await page.goto(storeUrl, { waitUntil: 'domcontentloaded' });
-        await delay(getRandomInt(2000, 3000));
+
+        // Ninja Mode: Randomized "Staring" at page (Human Wait)
+        const staringDelay = getRandomInt(4000, 8000);
+        await logger.log(`[Naver] Staring at page for ${staringDelay}ms to mimic reading... 👀`);
+        await delay(staringDelay);
 
         const maxScrolls = getRandomInt(3, 5);
         for (let i = 0; i < maxScrolls; i++) {

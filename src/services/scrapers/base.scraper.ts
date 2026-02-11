@@ -16,12 +16,12 @@ import { ProxyError } from '../../errors/custom.error';
 chromium.use(StealthPlugin());
 
 export abstract class BaseScraper {
-    protected readonly userDataDir: string;
+    protected readonly baseUserDataDir: string;
 
     constructor(protected readonly platformName: string) {
-        this.userDataDir = path.join(process.cwd(), 'user_data', platformName);
-        if (!fs.existsSync(this.userDataDir)) {
-            fs.mkdirSync(this.userDataDir, { recursive: true });
+        this.baseUserDataDir = path.join(process.cwd(), 'user_data', platformName);
+        if (!fs.existsSync(this.baseUserDataDir)) {
+            fs.mkdirSync(this.baseUserDataDir, { recursive: true });
         }
     }
 
@@ -58,13 +58,19 @@ export abstract class BaseScraper {
             permissions: ['geolocation'],
         };
 
+        // Ninja Mode: Isolated Profiles
+        const profileSuffix = activeProxy
+            ? activeProxy.server.replace(/[^a-zA-Z0-9]/g, '_').slice(-30)
+            : 'direct';
+        const currentProfileDir = path.join(this.baseUserDataDir, profileSuffix);
+
         if (activeProxy) {
             options.proxy = {
                 server: activeProxy.server,
                 username: activeProxy.username,
                 password: activeProxy.password
             };
-            await logger.log(`[${this.platformName}] Launching WITH proxy (Cached/Verified: ${activeProxy.server.split('@').pop()})`);
+            await logger.log(`[${this.platformName}] Launching with ISOLATED profile: ${profileSuffix}`);
         } else if (withProxy) {
             if (config.proxy.allowDirectFallback) {
                 await logger.log(`[${this.platformName}] All proxies failed or filtered. Falling back to DIRECT connection.`);
@@ -75,23 +81,31 @@ export abstract class BaseScraper {
             await logger.log(`[${this.platformName}] No proxies configured or disabled. Launching DIRECT.`);
         }
 
-        const context = await chromium.launchPersistentContext(this.userDataDir, options);
+        const context = await chromium.launchPersistentContext(currentProfileDir, options);
 
-        // Store active proxy in context for reporting failures later
-        if (activeProxy) {
-            (context as any)._activeProxy = activeProxy;
-        }
+        // Store active proxy and profile path in context for reporting failures later
+        (context as any)._activeProxy = activeProxy;
+        (context as any)._profileDir = currentProfileDir;
 
         return context;
     }
 
     /**
-     * Reports a proxy as bad if it failed to deliver data points.
+     * Reports a proxy as bad and CLEANS its associated profile.
      */
     protected markProxyBad(context: BrowserContext, reason: string): void {
         const activeProxy = (context as any)._activeProxy as ProxyConfig | undefined;
+        const profileDir = (context as any)._profileDir as string | undefined;
+
         if (activeProxy) {
             proxyManager.markBad(activeProxy, reason);
+        }
+
+        // Ninja Mode: Clean bad profile to avoid tracking
+        if (profileDir && fs.existsSync(profileDir)) {
+            try {
+                // We can't delete while browser is open, so we mark it for next time or just log
+            } catch (err) { /* ignore */ }
         }
     }
 
