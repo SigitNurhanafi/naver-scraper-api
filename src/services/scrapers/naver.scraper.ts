@@ -89,8 +89,13 @@ export class NaverScraper extends BaseScraper {
             const status = response.status();
 
             if (status === 429) {
-                await logger.log(`[Naver] CRITICAL: 429 Too Many Requests detected at ${url}. Flagging proxy immediately! ⛔`);
-                this.markProxyBad(page.context(), `Rate limited (429) at ${url}`);
+                const activeProxy = (page.context() as any)._activeProxy;
+                if (activeProxy) {
+                    await logger.log(`[Naver] CRITICAL: 429 Too Many Requests. Flagging PROXY immediately! ⛔ | URL: ${url}`);
+                    this.markProxyBad(page.context(), `Rate limited (429) at ${url}`);
+                } else {
+                    await logger.log(`[Naver] CRITICAL: 429 Detected on DIRECT IP. Naver has blocked your local/server IP! ⛔ | URL: ${url}`);
+                }
                 return;
             }
 
