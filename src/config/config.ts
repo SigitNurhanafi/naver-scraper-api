@@ -20,7 +20,8 @@ export const config = {
     },
     proxy: {
         useProxy: process.env.WITH_PROXY === 'true',
-        allowDirectFallback: process.env.ALLOW_DIRECT_FALLBACK === 'true'
+        allowDirectFallback: process.env.ALLOW_DIRECT_FALLBACK === 'true',
+        cacheTTL: Number(process.env.PROXY_CACHE_TTL) || 300
     },
     naver: {
         baseUrl: 'https://smartstore.naver.com',
