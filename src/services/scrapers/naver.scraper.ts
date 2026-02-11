@@ -52,8 +52,8 @@ export class NaverScraper extends BaseScraper {
                     await context.close().catch(() => { });
                     return { ...responses };
                 } else {
-                    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
-                    await this.waitForResponses(responses, logger, 10000);
+                    await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => { });
+                    await this.waitForResponses(responses, logger, 5000); // Reduced from 10000
 
                     if (isValidData(responses.benefits) && isValidData(responses.productDetails)) {
                         await logger.log(`[Naver] Attempt ${attempt} Success! All data captured after wait.`);
@@ -75,7 +75,7 @@ export class NaverScraper extends BaseScraper {
             }
 
             if (attempt < maxRetries) {
-                await delay(2000); // Cool down before retry
+                await delay(500); // Reduced from 2000 (Cool down)
             }
         }
 
@@ -138,22 +138,13 @@ export class NaverScraper extends BaseScraper {
         const storeUrl = `${config.naver.baseUrl}/${storeName}/`;
         await page.goto(storeUrl, { waitUntil: 'domcontentloaded' });
 
-        // Ninja Mode: Aggressive "Staring" at page (High Speed)
-        const staringDelay = getRandomInt(2000, 5000);
-        await logger.log(`[Naver] Aggressive Ninja Delay: ${staringDelay}ms... ⚡`);
+        // Ninja Mode: Ultra-Fast "Staring" (1-2s)
+        const staringDelay = getRandomInt(1000, 2000);
+        await logger.log(`[Naver] Ultra-Fast Ninja Delay: ${staringDelay}ms... 🚀`);
 
-        // Wait in chunks with micro-mouse movements so it's not a "frozen" wait
-        const chunks = Math.floor(staringDelay / 5000);
-        for (let j = 0; j < chunks; j++) {
-            if (page.isClosed()) break;
-            await delay(5000);
-            if (Math.random() > 0.5) {
-                // Micro mouse wobble
-                await page.mouse.move(getRandomInt(200, 400), getRandomInt(200, 400), { steps: 2 });
-            }
-        }
+        await delay(staringDelay);
 
-        const maxScrolls = getRandomInt(3, 5);
+        const maxScrolls = 2; // Reduced for speed
         for (let i = 0; i < maxScrolls; i++) {
             const productLink = await page.$(productLinkSelector);
             if (productLink && await productLink.isVisible()) {
