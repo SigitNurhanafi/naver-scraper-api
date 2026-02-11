@@ -17,7 +17,8 @@ export const config = {
         navigationTimeout: 60000, // 60s for full page loads
         maxRetries: 3,
         headless: process.env.HEADLESS === 'true',
-        resultCacheTTL: Number(process.env.SCRAPE_CACHE_TTL) || 30
+        resultCacheTTL: Number(process.env.SCRAPE_CACHE_TTL) || 30,
+        disableStealthDelay: process.env.DISABLE_STEALTH_DELAY === 'true'
     },
     proxy: {
         useProxy: process.env.WITH_PROXY === 'true',

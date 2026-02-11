@@ -138,11 +138,14 @@ export class NaverScraper extends BaseScraper {
         const storeUrl = `${config.naver.baseUrl}/${storeName}/`;
         await page.goto(storeUrl, { waitUntil: 'domcontentloaded' });
 
-        // Ninja Mode: Ultra-Fast "Staring" (1-2s)
-        const staringDelay = getRandomInt(1000, 2000);
-        await logger.log(`[Naver] Ultra-Fast Ninja Delay: ${staringDelay}ms... 🚀`);
-
-        await delay(staringDelay);
+        // Ninja Mode: Controlled Staring Delay
+        if (!config.scraper.disableStealthDelay) {
+            const staringDelay = getRandomInt(1000, 2000);
+            await logger.log(`[Naver] Ninja Staring Delay: ${staringDelay}ms... �`);
+            await delay(staringDelay);
+        } else {
+            await logger.log(`[Naver] Stealth delay DISABLED via config ⚡`);
+        }
 
         const maxScrolls = 2; // Reduced for speed
         for (let i = 0; i < maxScrolls; i++) {
@@ -150,7 +153,7 @@ export class NaverScraper extends BaseScraper {
             if (productLink && await productLink.isVisible()) {
                 await logger.log(`[Naver] Found link on Home! Clicking...`);
                 await productLink.scrollIntoViewIfNeeded();
-                await delay(getRandomInt(800, 1500));
+                await this.safeDelay(getRandomInt(800, 1500));
                 await productLink.click();
                 clicked = true;
                 break;
@@ -158,7 +161,7 @@ export class NaverScraper extends BaseScraper {
 
             await logger.log(`[Naver] Product not visible, scrolling... (${i + 1}/${maxScrolls})`);
             await page.mouse.wheel(0, getRandomInt(400, 900));
-            await delay(getRandomInt(1000, 2000));
+            await this.safeDelay(getRandomInt(1000, 2000));
 
             if (Math.random() > 0.6) {
                 await page.mouse.move(getRandomInt(200, 600), getRandomInt(200, 600), { steps: 5 });
@@ -169,7 +172,7 @@ export class NaverScraper extends BaseScraper {
             // Check one last time at top of page before giving up on browse
             await logger.log(`[Naver] Checking top of page before giving up on Browse...`);
             await page.evaluate(() => window.scrollTo(0, 0));
-            await delay(1000);
+            await this.safeDelay(1000);
             const finalCheck = await page.$(productLinkSelector).catch(() => null);
             if (finalCheck) {
                 await finalCheck.click();
@@ -183,13 +186,13 @@ export class NaverScraper extends BaseScraper {
             const searchUrl = `${config.naver.baseUrl}/${storeName}/search?q=${productId}`;
 
             await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
-            await delay(getRandomInt(2000, 3000));
+            await this.safeDelay(getRandomInt(2000, 3000));
 
             const searchLink = await page.$(productLinkSelector);
             if (searchLink) {
                 await logger.log(`[Naver] Found via Search! Clicking...`);
                 await searchLink.scrollIntoViewIfNeeded();
-                await delay(getRandomInt(800, 1500));
+                await this.safeDelay(getRandomInt(800, 1500));
                 await searchLink.click();
                 clicked = true;
             }

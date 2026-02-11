@@ -25,6 +25,15 @@ export abstract class BaseScraper {
         }
     }
 
+    /**
+     * A wrapper for delay that respects the DISABLE_STEALTH_DELAY flag.
+     */
+    protected async safeDelay(ms: number): Promise<void> {
+        if (!config.scraper.disableStealthDelay) {
+            await delay(ms);
+        }
+    }
+
     abstract scrape(url: string, logger: Logger): Promise<ScrapeResult>;
 
     protected async launchContext(logger: Logger): Promise<BrowserContext> {
@@ -150,7 +159,7 @@ export abstract class BaseScraper {
                     await page.evaluate(() => window.scrollBy({ top: Math.random() * 400, behavior: 'auto' }));
                 }
 
-                await delay(getRandomInt(300, 800)); // Reduced from 800-2000
+                await this.safeDelay(getRandomInt(300, 800)); // Reduced from 800-2000
 
                 if (Math.random() > 0.5) {
                     // Jittery mouse movement
