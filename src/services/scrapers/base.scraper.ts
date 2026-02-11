@@ -25,10 +25,20 @@ export abstract class BaseScraper {
         }
     }
 
+    /**
+     * A wrapper for delay that respects the DISABLE_STEALTH_DELAY flag.
+     */
+    protected async safeDelay(ms: number): Promise<void> {
+        if (!config.scraper.disableStealthDelay) {
+            await delay(ms);
+        }
+    }
+
     abstract scrape(url: string, logger: Logger): Promise<ScrapeResult>;
 
     protected async launchContext(logger: Logger): Promise<BrowserContext> {
         const fingerprint = getRandomFingerprint();
+        await logger.log(`[${this.platformName}] Active User-Agent: ${fingerprint.userAgent} 🌐`);
         await logger.log(`[${this.platformName}] Using fingerprint`, fingerprint);
 
         const withProxy = config.proxy.useProxy;
@@ -140,20 +150,20 @@ export abstract class BaseScraper {
     protected async simulateHumanBehavior(page: Page): Promise<void> {
         try {
             if (page.isClosed()) return;
-            const scrollCount = getRandomInt(3, 6);
+            const scrollCount = getRandomInt(1, 2); // Reduced from 3-6
             for (let i = 0; i < scrollCount; i++) {
                 // Randomly choose between wheel scroll and smooth scroll
                 if (Math.random() > 0.4) {
-                    await page.mouse.wheel(0, getRandomInt(400, 1000));
+                    await page.mouse.wheel(0, getRandomInt(400, 800));
                 } else {
-                    await page.evaluate(() => window.scrollBy({ top: Math.random() * 500, behavior: 'smooth' }));
+                    await page.evaluate(() => window.scrollBy({ top: Math.random() * 400, behavior: 'auto' }));
                 }
 
-                await delay(getRandomInt(800, 2000));
+                await this.safeDelay(getRandomInt(300, 800)); // Reduced from 800-2000
 
                 if (Math.random() > 0.5) {
                     // Jittery mouse movement
-                    await page.mouse.move(getRandomInt(100, 800), getRandomInt(100, 800), { steps: getRandomInt(5, 15) });
+                    await page.mouse.move(getRandomInt(100, 600), getRandomInt(100, 600), { steps: 5 });
                 }
             }
             await page.mouse.move(getRandomInt(200, 600), getRandomInt(200, 600));

@@ -1,12 +1,12 @@
-// src/services/cache.service.ts
 import NodeCache = require('node-cache');
+import { config } from '../config/config';
 
 export class CacheService {
   private static instance: CacheService;
   private readonly cache: NodeCache;
 
   private constructor() {
-    this.cache = new NodeCache({ stdTTL: 30, checkperiod: 120 });
+    this.cache = new NodeCache({ stdTTL: config.scraper.resultCacheTTL, checkperiod: 120 });
   }
 
   public static getInstance(): CacheService {

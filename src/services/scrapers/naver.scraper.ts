@@ -52,8 +52,8 @@ export class NaverScraper extends BaseScraper {
                     await context.close().catch(() => { });
                     return { ...responses };
                 } else {
-                    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => { });
-                    await this.waitForResponses(responses, logger, 10000);
+                    await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => { });
+                    await this.waitForResponses(responses, logger, 5000); // Reduced from 10000
 
                     if (isValidData(responses.benefits) && isValidData(responses.productDetails)) {
                         await logger.log(`[Naver] Attempt ${attempt} Success! All data captured after wait.`);
@@ -75,7 +75,7 @@ export class NaverScraper extends BaseScraper {
             }
 
             if (attempt < maxRetries) {
-                await delay(2000); // Cool down before retry
+                await delay(500); // Reduced from 2000 (Cool down)
             }
         }
 
@@ -138,28 +138,22 @@ export class NaverScraper extends BaseScraper {
         const storeUrl = `${config.naver.baseUrl}/${storeName}/`;
         await page.goto(storeUrl, { waitUntil: 'domcontentloaded' });
 
-        // Ninja Mode: Aggressive "Staring" at page (High Speed)
-        const staringDelay = getRandomInt(2000, 5000);
-        await logger.log(`[Naver] Aggressive Ninja Delay: ${staringDelay}ms... ⚡`);
-
-        // Wait in chunks with micro-mouse movements so it's not a "frozen" wait
-        const chunks = Math.floor(staringDelay / 5000);
-        for (let j = 0; j < chunks; j++) {
-            if (page.isClosed()) break;
-            await delay(5000);
-            if (Math.random() > 0.5) {
-                // Micro mouse wobble
-                await page.mouse.move(getRandomInt(200, 400), getRandomInt(200, 400), { steps: 2 });
-            }
+        // Ninja Mode: Controlled Staring Delay
+        if (!config.scraper.disableStealthDelay) {
+            const staringDelay = getRandomInt(1000, 2000);
+            await logger.log(`[Naver] Ninja Staring Delay: ${staringDelay}ms... �`);
+            await delay(staringDelay);
+        } else {
+            await logger.log(`[Naver] Stealth delay DISABLED via config ⚡`);
         }
 
-        const maxScrolls = getRandomInt(3, 5);
+        const maxScrolls = 2; // Reduced for speed
         for (let i = 0; i < maxScrolls; i++) {
             const productLink = await page.$(productLinkSelector);
             if (productLink && await productLink.isVisible()) {
                 await logger.log(`[Naver] Found link on Home! Clicking...`);
                 await productLink.scrollIntoViewIfNeeded();
-                await delay(getRandomInt(800, 1500));
+                await this.safeDelay(getRandomInt(800, 1500));
                 await productLink.click();
                 clicked = true;
                 break;
@@ -167,7 +161,7 @@ export class NaverScraper extends BaseScraper {
 
             await logger.log(`[Naver] Product not visible, scrolling... (${i + 1}/${maxScrolls})`);
             await page.mouse.wheel(0, getRandomInt(400, 900));
-            await delay(getRandomInt(1000, 2000));
+            await this.safeDelay(getRandomInt(1000, 2000));
 
             if (Math.random() > 0.6) {
                 await page.mouse.move(getRandomInt(200, 600), getRandomInt(200, 600), { steps: 5 });
@@ -178,7 +172,7 @@ export class NaverScraper extends BaseScraper {
             // Check one last time at top of page before giving up on browse
             await logger.log(`[Naver] Checking top of page before giving up on Browse...`);
             await page.evaluate(() => window.scrollTo(0, 0));
-            await delay(1000);
+            await this.safeDelay(1000);
             const finalCheck = await page.$(productLinkSelector).catch(() => null);
             if (finalCheck) {
                 await finalCheck.click();
@@ -192,13 +186,13 @@ export class NaverScraper extends BaseScraper {
             const searchUrl = `${config.naver.baseUrl}/${storeName}/search?q=${productId}`;
 
             await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
-            await delay(getRandomInt(2000, 3000));
+            await this.safeDelay(getRandomInt(2000, 3000));
 
             const searchLink = await page.$(productLinkSelector);
             if (searchLink) {
                 await logger.log(`[Naver] Found via Search! Clicking...`);
                 await searchLink.scrollIntoViewIfNeeded();
-                await delay(getRandomInt(800, 1500));
+                await this.safeDelay(getRandomInt(800, 1500));
                 await searchLink.click();
                 clicked = true;
             }

@@ -16,11 +16,14 @@ export const config = {
         requestTimeout: Number(process.env.REQUEST_TIMEOUT) || 30000,
         navigationTimeout: 60000, // 60s for full page loads
         maxRetries: 3,
-        headless: process.env.HEADLESS === 'true'
+        headless: process.env.HEADLESS === 'true',
+        resultCacheTTL: Number(process.env.SCRAPE_CACHE_TTL) || 30,
+        disableStealthDelay: process.env.DISABLE_STEALTH_DELAY === 'true'
     },
     proxy: {
         useProxy: process.env.WITH_PROXY === 'true',
-        allowDirectFallback: process.env.ALLOW_DIRECT_FALLBACK === 'true'
+        allowDirectFallback: process.env.ALLOW_DIRECT_FALLBACK === 'true',
+        cacheTTL: Number(process.env.PROXY_CACHE_TTL) || 300
     },
     naver: {
         baseUrl: 'https://smartstore.naver.com',

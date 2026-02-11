@@ -3,6 +3,7 @@ import NodeCache from 'node-cache';
 import { ProxyConfig } from '../types';
 import { getProxyList, isProxyWorking } from './proxy.validator';
 import { Logger } from './logger';
+import { config } from '../config/config';
 
 export class ProxyManager {
     private static instance: ProxyManager;
@@ -10,8 +11,9 @@ export class ProxyManager {
     private lastUsedIndex: number = -1;
 
     private constructor() {
-        // Cache for bad proxies with 5 minutes TTL
-        this.badProxyCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+        // Cache for bad proxies with configurable TTL
+        const ttl = config.proxy.cacheTTL;
+        this.badProxyCache = new NodeCache({ stdTTL: ttl, checkperiod: 60 });
     }
 
     public static getInstance(): ProxyManager {
