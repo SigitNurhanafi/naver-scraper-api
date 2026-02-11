@@ -138,10 +138,20 @@ export class NaverScraper extends BaseScraper {
         const storeUrl = `${config.naver.baseUrl}/${storeName}/`;
         await page.goto(storeUrl, { waitUntil: 'domcontentloaded' });
 
-        // Ninja Mode: Randomized "Staring" at page (Human Wait)
-        const staringDelay = getRandomInt(4000, 8000);
-        await logger.log(`[Naver] Staring at page for ${staringDelay}ms to mimic reading... 👀`);
-        await delay(staringDelay);
+        // Ninja Mode: Extra-Long "Staring" at page (Human Wait)
+        const staringDelayLines = getRandomInt(10000, 60000);
+        await logger.log(`[Naver] Extra-Long Staring Delay: ${staringDelayLines}ms to mimic slow reading... 📖`);
+
+        // Wait in chunks with micro-mouse movements so it's not a "frozen" wait
+        const chunks = Math.floor(staringDelayLines / 5000);
+        for (let j = 0; j < chunks; j++) {
+            if (page.isClosed()) break;
+            await delay(5000);
+            if (Math.random() > 0.5) {
+                // Micro mouse wobble
+                await page.mouse.move(getRandomInt(200, 400), getRandomInt(200, 400), { steps: 2 });
+            }
+        }
 
         const maxScrolls = getRandomInt(3, 5);
         for (let i = 0; i < maxScrolls; i++) {
