@@ -29,6 +29,7 @@ export abstract class BaseScraper {
 
     protected async launchContext(logger: Logger): Promise<BrowserContext> {
         const fingerprint = getRandomFingerprint();
+        await logger.log(`[${this.platformName}] Active User-Agent: ${fingerprint.userAgent} 🌐`);
         await logger.log(`[${this.platformName}] Using fingerprint`, fingerprint);
 
         const withProxy = config.proxy.useProxy;
