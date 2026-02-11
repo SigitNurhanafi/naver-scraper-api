@@ -126,12 +126,20 @@ export abstract class BaseScraper {
     protected async simulateHumanBehavior(page: Page): Promise<void> {
         try {
             if (page.isClosed()) return;
-            const scrollCount = getRandomInt(2, 4);
+            const scrollCount = getRandomInt(3, 6);
             for (let i = 0; i < scrollCount; i++) {
-                await page.mouse.wheel(0, getRandomInt(300, 800));
-                await delay(getRandomInt(600, 1200));
-                if (Math.random() > 0.6) {
-                    await page.mouse.move(getRandomInt(200, 700), getRandomInt(200, 700), { steps: 5 });
+                // Randomly choose between wheel scroll and smooth scroll
+                if (Math.random() > 0.4) {
+                    await page.mouse.wheel(0, getRandomInt(400, 1000));
+                } else {
+                    await page.evaluate(() => window.scrollBy({ top: Math.random() * 500, behavior: 'smooth' }));
+                }
+
+                await delay(getRandomInt(800, 2000));
+
+                if (Math.random() > 0.5) {
+                    // Jittery mouse movement
+                    await page.mouse.move(getRandomInt(100, 800), getRandomInt(100, 800), { steps: getRandomInt(5, 15) });
                 }
             }
             await page.mouse.move(getRandomInt(200, 600), getRandomInt(200, 600));

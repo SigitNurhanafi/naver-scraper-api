@@ -88,6 +88,12 @@ export class NaverScraper extends BaseScraper {
             const url = response.url();
             const status = response.status();
 
+            if (status === 429) {
+                await logger.log(`[Naver] CRITICAL: 429 Too Many Requests detected at ${url}. Flagging proxy immediately! ⛔`);
+                this.markProxyBad(page.context(), `Rate limited (429) at ${url}`);
+                return;
+            }
+
             if (shouldIgnoreLog(url)) {
                 // Suppress noisy logs during retries unless error
                 if (status >= 400) await logger.log(`[Naver] Intercepted Error: [${status}] ${url}`);
