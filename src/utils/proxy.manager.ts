@@ -27,28 +27,37 @@ export class ProxyManager {
      */
     public async getNextProxy(logger: Logger): Promise<ProxyConfig | null> {
         const proxyList = getProxyList();
-        if (proxyList.length === 0) return null;
+        if (proxyList.length === 0) {
+            await logger.log('[ProxyManager] No proxies found in proxies.json');
+            return null;
+        }
 
         const totalProxies = proxyList.length;
+        await logger.log(`[ProxyManager] Attempting to find healthy proxy from list of ${totalProxies}`);
 
         // Try to find the next healthy proxy starting from the last used index
         for (let i = 0; i < totalProxies; i++) {
             this.lastUsedIndex = (this.lastUsedIndex + 1) % totalProxies;
             const proxy = proxyList[this.lastUsedIndex];
+            const proxyUrl = proxy.server.split('@').pop();
 
             if (this.isBad(proxy)) {
+                await logger.log(`[ProxyManager] Skipping flagged proxy: ${proxyUrl}`);
                 continue;
             }
 
             // Optional: Double check if it's REALLY working before returning
             const working = await isProxyWorking(logger, proxy);
             if (working) {
+                await logger.log(`[ProxyManager] Selected proxy: ${proxyUrl}`);
                 return proxy;
             } else {
+                await logger.log(`[ProxyManager] Proxy ${proxyUrl} is unresponsive. Marking bad.`);
                 this.markBad(proxy, 'Connectivity failure during selection');
             }
         }
 
+        await logger.log('[ProxyManager] No healthy proxies available in the rotation.');
         return null;
     }
 
@@ -57,6 +66,8 @@ export class ProxyManager {
      */
     public markBad(proxy: ProxyConfig, reason: string): void {
         const key = this.getProxyKey(proxy);
+        const proxyUrl = proxy.server.split('@').pop();
+        console.log(`[ProxyManager] Flagging BAD proxy: ${proxyUrl} | Reason: ${reason}`);
         this.badProxyCache.set(key, { reason, timestamp: Date.now() });
     }
 

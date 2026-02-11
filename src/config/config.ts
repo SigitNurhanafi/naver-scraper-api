@@ -2,6 +2,10 @@
 import dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
+console.log('[Config] Loading configuration...');
+console.log(`[Config] WITH_PROXY: ${process.env.WITH_PROXY}`);
+console.log(`[Config] ALLOW_DIRECT_FALLBACK: ${process.env.ALLOW_DIRECT_FALLBACK}`);
+
 export const config = {
     server: {
         port: process.env.PORT || 3000,
@@ -26,3 +30,6 @@ export const config = {
         }
     }
 } as const;
+
+console.log(`[Config] Proxy Enabled: ${config.proxy.useProxy}`);
+console.log(`[Config] Direct Fallback: ${config.proxy.allowDirectFallback}`);
